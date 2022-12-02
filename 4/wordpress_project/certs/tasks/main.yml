@@ -1,0 +1,49 @@
+---
+# tasks file for certs
+
+- name: add epel-release
+  yum:
+    name: epel-release
+    state: present
+
+- name: install pip
+  yum:
+    name: python-pip
+    state: present
+
+- name: upgrade pip
+  pip:
+    name: pip
+    state: present
+    version: '20.3'
+
+- name: install PyOpenSSL
+  pip:
+    name: PyOpenSSL
+    state: present
+    version: '21.0.0'
+
+- name: Creates directory
+  file:
+    path: $HOME/certs
+    state: directory
+    mode: 0644
+
+- name: Generate Private key
+  openssl_privatekey: path=$HOME/certs/selfsigned.key
+
+- name: Generate CSR
+  openssl_csr:
+    path: $HOME/certs/selfsigned.csr
+    privatekey_path: $HOME/certs/selfsigned.key
+    common_name: ansible_lesson_1
+    country_name: RU
+    email_address: mihail.pashko@gmail.com
+    organization_name: ansible_lessons
+
+- name: Generate an OpenSSL certificate signed
+  community.crypto.x509_certificate:
+    path: "$HOME/certs/selfsigned.crt"
+    csr_path: "$HOME/certs/selfsigned.csr"
+    privatekey_path: "$HOME/certs/selfsigned.key"
+    provider: selfsigned

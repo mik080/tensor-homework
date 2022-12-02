@@ -1,0 +1,86 @@
+---
+# tasks file for wordpress
+- name: Copy nginx configuration from template for wordpress
+  template:
+    src: templates/nginx-wordpress.conf.j2
+    dest: /etc/nginx/conf.d/nginx-wordpress.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart nginx
+
+- name: Remove default /etc/php-fpm.d/www.conf file
+  file:
+    path: /etc/php-fpm.d/www.conf
+    state: absent
+
+- name: Copy wordpress.conf from files to /etc/php-fpm.d/wordpress.conf
+  copy:
+    src: wordpress.conf
+    dest: /etc/php-fpm.d/
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart php-fpm
+
+- name: >
+    Download WordPress from http://wordpress.org/wordpress-{{ wp_version }}.tar.gz
+    to /srv/ folder + checksum
+  get_url:
+    url: https://wordpress.org/wordpress-{{ wp_version }}.tar.gz
+    dest: /srv/
+    checksum: "{{ wp_checksum }}"
+
+- name: Unarchive wordpress to /srv folder
+  unarchive:
+    src: /srv/wordpress-{{ wp_version }}.tar.gz
+    dest: /srv/
+    remote_src: true
+
+- name: Add linux group "wordpress"
+  group:
+    name: wordpress
+    state: present
+
+- name: >
+    Add linux user "wordpress" with group "wordpress"
+    and /srv/wordpress as homedir
+  user:
+    name: wordpress
+    home: /srv/wordpress
+    group: wordpress
+    state: present
+
+- name: Create mariadb database for wordpress
+  mysql_db:
+    name: "{{ wp_db_name }}"
+    state: present
+
+- name: Create WordPress database user
+  mysql_user:
+    name: "{{ wp_db_user }}"
+    password: "{{ wp_db_password }}"
+    priv: '{{ wp_db_name }}.*:ALL'
+    state: present
+  no_log: true
+
+- name: >
+    Copy WordPress config file from templates
+    to /srv/wordpress/wp-config.php
+  template:
+    src: templates/wp-config.php
+    dest: /srv/wordpress/wp-config.php
+    owner: root
+    group: root
+    mode: 0755
+
+- name: >
+    /srv/wordpress directory recursive rights
+    for wordpress user and group
+  file:
+    path: /srv/wordpress
+    state: directory
+    recurse: true
+    owner: wordpress
+    group: wordpress
+    mode: 0755

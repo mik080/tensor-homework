@@ -1,0 +1,24 @@
+---
+- name: add system users
+  hosts: nodes
+  become: true
+  gather_facts: false
+  vars_files:   
+    - vars/main.yaml
+  tasks:
+    - name: create user with comment   
+      user: 
+        name: "{{ user.0 }}"
+        comment: Ansible-generated user
+        password: "{{ user.1 | password_hash('sha512')}}"
+    
+      loop: "{{ username | zip (password)| list }}"  
+      loop_control:
+        loop_var: user
+        pause: 5
+      no_log: true
+
+        
+
+     
+          

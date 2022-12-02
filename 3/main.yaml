@@ -1,0 +1,20 @@
+---
+
+- name: install nginx, mariadb and genereate selfsigned certificate
+  hosts: nodes
+  become: true
+  tasks:
+    - name: create selfsigned certs
+      import_role:
+        name: certs
+      tags: certs
+
+    - name: install nginx
+      import_role:
+        name: nginx
+      tags: nginx
+
+    - name: install mariadb
+      import_role:
+        name: mariadb
+      tags: mariadb

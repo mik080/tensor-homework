@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: count-pods-deployment
+  # labels:
+  #   app: node-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: count-pods
+ 
+  template:
+    metadata:
+      labels:
+        app: count-pods
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9100'
+    spec:
+      containers:
+      - name: count-pods
+        image: devops-school/count-pods:latest
+        ports:
+        - containerPort: 9100
+        #annotations:
+        imagePullPolicy: IfNotPresent
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: count-pods-svc
+  annotations:
+      prometheus.io/scrape: 'true'
+      prometheus.io/port:   '9100'
+spec:
+  selector:
+    app: count-pods
+  ports:
+    - protocol: TCP
+      port: 9100
+      targetPort: 9100

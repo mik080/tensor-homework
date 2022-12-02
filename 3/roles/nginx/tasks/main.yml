@@ -1,0 +1,107 @@
+---
+# tasks file for nginx
+
+- name: create nginx repo definition
+  copy:
+    src: nginx.repo
+    dest: /etc/yum.repos.d/nginx.repo
+    owner: root
+    group: root
+    mode: 0644
+
+- name: install nginx
+  yum:
+    name: nginx
+    update_cache: true
+    state: present
+    
+- name: copy main nginx config file
+  copy:
+    src: files/nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart nginx
+
+- name: Check that the selfsigned.key exists
+  stat:
+    path: $HOME/certs/selfsigned.key
+  register: stat_result
+
+- name: Create the file, if it doesnt exist already
+  import_role:
+    name=certs
+  when: not stat_result.stat.exists
+
+- name: copy nginx certs files
+  copy:
+    remote_src: yes
+    src: $HOME/certs/{{ cert_file }}
+    dest: /etc/nginx/
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - selfsigned.crt
+    - selfsigned.key
+  loop_control:  
+    loop_var: cert_file  
+  notify: restart nginx  
+
+- name: copy site's nginx config file
+  template:
+    src: templates/nginx.conf.j2
+    dest: /etc/nginx/conf.d/notls.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart nginx
+
+- name: copy index.html
+  template:
+    src: templates/index.html.j2
+    dest: /usr/share/nginx/html/index.html
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart nginx
+
+- name: ensure nginx is enabled and started
+  service:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: insert firewalld rule for nginx
+  firewalld:
+    port: "{{ nginx_ports }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  
+  loop:
+    - "{{ nginx_port_no_tls }}/tcp"
+    - "{{ nginx_port_with_tls }}/tcp"
+  loop_control:  
+    loop_var: nginx_ports
+  ignore_errors: true
+
+- name: check web site from control server
+  uri:
+    url: "http://{{ ansible_host }}:{{ nginx_port_no_tls }}"
+    return_content: true
+  connection: local
+  register: example_webpage_out
+  failed_when: example_webpage_out.status != 200
+    
+- name: check web site https from control server
+  uri:
+    url: "https://{{ ansible_host }}:{{ nginx_port_with_tls }}"
+    validate_certs: false
+    return_content: true
+  connection: local
+  
+  register: example_webpage_out
+  failed_when: example_webpage_out.status != 200
+

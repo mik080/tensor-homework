@@ -1,0 +1,23 @@
+---
+- name: Check site's availability
+  hosts: nodes
+  gather_facts: false
+  tasks:
+    - name: install python library requests
+      pip:
+        name: requests
+        state: present
+
+    - name: healthcheck
+      healthcheck_py:
+        addr: "localhost"
+        tls: true
+      ignore_errors: true
+
+    - name: healthcheck bash
+      healthcheck_sh:
+        addr: "localhost"
+        tls: false
+      register: health_check
+      changed_when: false
+      failed_when: health_check.rc != "200"

@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gen-page-deployment
+  namespace: homework
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gen-page
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: gen-page
+        app: nginx
+    spec:
+      containers:
+      - name: gen-page
+        image: gen-page:1.0.2
+        imagePullPolicy: Never
+        env:
+          - name: MYSQL_USER_PASSWORD            
+            valueFrom: 
+              secretKeyRef: 
+                key: mysql_user_passwd 
+                name: mysql-secrets
+        envFrom:
+          - configMapRef:
+              name: mysql-creds
+        volumeMounts:
+          - name: www-data
+            mountPath: /opt/www
+              
+      - name: nginx
+        image: nginx:1.21.6
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - name: www-data
+            mountPath: /usr/share/nginx/html
+      volumes:
+        - name: www-data
+          emptyDir: {}
+

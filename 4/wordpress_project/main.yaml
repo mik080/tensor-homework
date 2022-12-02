@@ -1,0 +1,28 @@
+- name: install nginx, mariadb, genereate selfsigned certificate and wordpress
+  hosts: nodes
+  become: true
+  tasks:
+    - name: create selfsigned certs
+      import_role:
+        name: certs
+      tags: certs
+
+    - name: install nginx
+      import_role:
+        name: nginx
+      tags: nginx
+
+    - name: install mariadb
+      import_role:
+        name: mariadb
+      tags: mariadb
+
+    - name: install php
+      import_role:
+        name: php
+      tags: php
+
+    - name: install wordpress
+      import_role:
+        name: wordpress
+      tags: wordpress
